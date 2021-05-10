@@ -152,20 +152,46 @@ var Zetkin = function() {
 
     /**
      * Retrieve a resource proxy through which requests to that resource can be
-     * made.
+     * made. An optional query object may be added as the last argument.
      *
      * Example: Z.resource('orgs', 1, 'people').get() will make a HTTP GET
      * request to the /orgs/1/people resource.
+     *
+     * Example: Z.resource('orgs', 1', 'sub_organizations', { recursive: true }) u
+     * will make a HTTP GET request to /orgs/1/people?recursive
     */
     this.resource = function() {
-        path = Array.prototype.join.call(arguments, '/');
+        args = Array.prototype.filter.call(arguments, arg => typeof(arg) === 'string' || typeof(arg) === 'number');
+        path = args.join('/');
         if (path.length == 0 || path[0] != '/') {
             path = '/' + path;
         }
 
         path = _config.base + '/v' + _config.version + path;
 
-        return new ZetkinResourceProxy(this, path, _request);
+        query = [];
+
+        if(args.length == arguments.length-1) {
+            queryObject = arguments[arguments.length-1]
+            if(typeof(queryObject) !== 'object') {
+                throw new Error('Only the last argument of resource may be an object!')
+            }
+            query = Object.keys(queryObject)
+                // Filter any keys with values that evaluate to false
+                .filter(key => queryObject[key] !== false)
+                .map(key => {
+                    enckey = encodeURIComponent(key);
+                    if(queryObject[key] === true) {
+                        return enckey
+                    } else {
+                        return enckey + '=' + encodeURIComponent(queryObject[key]);
+                    }
+                });
+        } else if(args.length != arguments.length) {
+            throw new Error('Only one query object allowed!');
+        }
+
+        return new ZetkinResourceProxy(this, path, query, _request);
     };
 
     /**
@@ -225,11 +251,12 @@ var Zetkin = function() {
 }
 
 
-var ZetkinResourceProxy = function(z, path, _request) {
+var ZetkinResourceProxy = function(z, path, query, _request) {
     var _meta = {};
 
     this.getPath = function() {
-        return path;
+        const queryString = query.length > 0 ? '?' + query.join('&') : '';
+        return path + queryString;
     };
 
     this.meta = function(keyOrObj, valueIfAny) {
@@ -259,8 +286,6 @@ var ZetkinResourceProxy = function(z, path, _request) {
             method: 'GET',
             path: path,
         };
-
-        var query = [];
 
         if (page !== undefined && page !== null) {
             query.push('p=' + page || 0);

@@ -102,6 +102,22 @@ console.log(res0.getPath() === res1.getPath()); // true
 
 Both methods yield the same result, but you might find the second version without the slashes and + signs nicer and easier to read.
 
+### Adding query parameters
+Query parameters may be passed to `Z.resource()` as an object. This has to be passed as the last argument.
+
+```javascript
+var res = Z.resource('orgs', 1, 'sub_organization', { recursive: true });
+
+assert(res.getPath() === '/v1/orgs/1/sub_organization?recursive=true'); //true
+```
+
+Query parameters may also be combined with page arguments.
+
+```javascript
+// Makes a request to /v1/orgs/1/people?foo=bar&p=2&pp=100
+var res = Z.resource('orgs', 1, 'people', { foo: 'bar'}).get(2, 100);
+```
+
 ### Making the most of resource proxies
 The objects returned by `Z.resource()` are called _resource proxies_. They can be reused for any number of requests, and even stored as part of your data model for shorter, more readable code.
 

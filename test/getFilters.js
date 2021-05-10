@@ -67,6 +67,23 @@ describe('get() filters', () => {
             ]);
     });
 
+    it('generates correct query string for single filter combined with query param', done => {
+        let Z = proxyquire('../', {
+            https: mockHttpClient({
+                done: done,
+                validateRequestOptions: opts => {
+                    assert.equal(opts.path,
+                        '/v1/orgs?foo=bar&filter=param1%3D%3D1');
+                },
+            }),
+        });
+
+        Z.resource('orgs', { foo: 'bar' })
+            .get(null, null, [
+                [ 'param1', '==', 1 ],
+            ]);
+    });
+
     it('generates correct query string for two filters', done => {
         let Z = proxyquire('../', {
             https: mockHttpClient({
